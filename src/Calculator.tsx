@@ -3,7 +3,7 @@ import { useState } from "react";
 function evaluate(expr: string): number {
   const ops: string[] = [];
   const vals: number[] = [];
-  const tokens = expr.match(/(\d+(\.\d+)?|[+*/()-])/g);
+  const tokens = expr.match(/(\d+(\.\d+)?|[+*/()-]|sin|cos|tan)/g);
 
   const precedence = (op: string) =>
     ({ "+": 1, "-": 1, "*": 2, "/": 2 })[op] ?? 0;
@@ -13,21 +13,48 @@ function evaluate(expr: string): number {
     const a = vals.pop()!;
     const op = ops.pop()!;
     const res =
-      op === "+" ? a + b : op === "-" ? a - b : op === "*" ? a * b : a / b;
+      op === "+"
+        ? a + b
+        : op === "-"
+          ? a - b
+          : op === "*"
+            ? a * b
+            : op === "/"
+              ? a / b
+              : op === "sin"
+                ? Math.sin(b)
+                : op === "cos"
+                  ? Math.cos(b)
+                  : Math.tan(b); // Assuming `tan` is the operator
     vals.push(res);
   };
 
   if (!tokens) throw new Error("Invalid Expression");
 
   for (const token of tokens) {
-    if (!isNaN(Number(token))) vals.push(Number(token));
-    else if ("+-*/".includes(token)) {
-      while (ops.length && precedence(ops[ops.length - 1]) >= precedence(token))
+    if (!isNaN(Number(token))) {
+      vals.push(Number(token));
+    } else if (token === "(") {
+      ops.push(token);
+    } else if (token === ")") {
+      while (ops.length && ops[ops.length - 1] !== "(") {
         apply();
+      }
+      ops.pop(); // Pop the '(' from the stack
+    } else if (["+", "-", "*", "/", "sin", "cos", "tan"].includes(token)) {
+      while (
+        ops.length &&
+        precedence(ops[ops.length - 1]) >= precedence(token) &&
+        ops[ops.length - 1] !== "("
+      ) {
+        apply();
+      }
       ops.push(token);
     }
   }
+
   while (ops.length) apply();
+
   return vals[0];
 }
 
